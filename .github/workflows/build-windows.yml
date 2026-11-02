@@ -1,5 +1,5 @@
 
-name: Christmas Radio V5 - Windows EXE
+name: Christmas Radio V6 - Windows EXE
 
 on:
   push:
@@ -52,10 +52,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: V4-interface koppelen aan radio
+      - name: V4-kerstlay-out koppelen aan V6-radio
         run: |
           python apply_v5.py
-          python -m py_compile main.py radio_engine.py
+          python apply_v6.py
+          python -m py_compile main.py radio_engine.py radio_v6.py apply_v6.py
 
       - name: Zelfstandige Windows EXE bouwen
         shell: pwsh
@@ -71,7 +72,7 @@ jobs:
       - name: Windows EXE beschikbaar maken
         uses: actions/upload-artifact@v4
         with:
-          name: Christmas-Radio-V5-Windows
+          name: Christmas-Radio-V6-Windows
           path: dist/Christmas Radio.exe
           if-no-files-found: error
           retention-days: 30
