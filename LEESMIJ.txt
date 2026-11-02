@@ -1,0 +1,38 @@
+CHRISTMAS RADIO – MODERNE THEMA-INTERFACE
+======================================
+
+De nieuwe indeling volgt het voorbeeld: links bediening,
+midden kanalen en gebruikers, rechts TG-groepen/audio,
+en uiterst rechts de vier thema's.
+
+1. Open https://github.com/michiel66/christmas-radio
+2. Voeg deze bestanden toe in de bestaande repository:
+   - modern_radio.py
+   - make_themes.py
+   - .github/workflows/build-themes-windows.yml
+3. De bestaande radio_engine.py, radio_v6.py en requirements.txt
+   blijven ongewijzigd. Laat ook de bestaande V6-build staan.
+4. Commit changes. De nieuwe GitHub Actions-workflow start.
+5. Open Actions > Christmas Radio - Seizoenen Windows EXE
+   en download het artifact Christmas-Radio-Themas-Windows.
+6. Start 'Christmas Radio Themes.exe'.
+
+Optioneel staan de vier JPEG-banners in de ZIP onder 'skins/'.
+De workflow maakt ze automatisch opnieuw; uploaden hoeft niet.
+
+WERKING
+- Kies TG-103 Voorburg of TG-108 Heerlen en klik Verbinden.
+- Klik op een kanaal uit de live lijst om te schakelen.
+- TALK ingedrukt houden (of spatiebalk) = microfoon aan.
+- TALK loslaten = microfoon uit.
+- Thema kiezen en 'Thema toepassen' aanklikken.
+- De actieve verbinding blijft tijdens themawissel in stand.
+- Kies microfoon en volume in de sectie Microfoon & Audio.
+- De radio-connector wordt gebouwd uit de vastgepinde versie
+  die de werkende PTT Direct Windows-workflow gebruikt.
+- De officiële bronlicentie wordt meegebundeld.
+
+BELANGRIJK
+De Python-syntax en de pakketbestanden zijn gecontroleerd.
+Een Windows-build en live netwerk-/audiotest zijn hier niet gedaan.
+Er wordt niets van de bestaande succesvolle radio-build overschreven.
