@@ -1,39 +1,77 @@
 
-name: Christmas Radio - Windows EXE
+name: Christmas Radio V5 - Windows EXE
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-windows:
-    name: Build Christmas Radio
     runs-on: windows-latest
+    timeout-minutes: 90
+
+    env:
+      CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+      CARGO_TERM_COLOR: always
 
     steps:
-      - name: Download repository
+      - name: Project ophalen
         uses: actions/checkout@v4
 
-      - name: Install Python
+      - name: Python installeren
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Rust installeren
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Werkende radiospraakmotor ophalen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules https://github.com/WebSpeak3/webspeak3.git upstream
+          cd upstream
+          git checkout c2b52b323d2ef10e388b2b600444a98390c5cc7a
+          git submodule update --init --recursive
+
+      - name: Radiospraakmotor bouwen
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream/connector
+          cargo build --release
+          test -s target/release/ts-connector.exe
+
+      - name: Windows-onderdelen installeren
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip install pyinstaller
 
-      - name: Build Christmas Radio EXE
+      - name: V4-interface koppelen aan radio
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Christmas Radio" --add-data "christmas_radio.png;." main.py
+          python apply_v5.py
+          python -m py_compile main.py radio_engine.py
 
-      - name: Upload Windows EXE
+      - name: Zelfstandige Windows EXE bouwen
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed `
+            --name "Christmas Radio" `
+            --collect-all _sounddevice_data `
+            --add-data "christmas_radio.png;." `
+            --add-data "upstream/LICENSE;third_party_licenses" `
+            --add-binary "upstream/connector/target/release/ts-connector.exe;." `
+            main.py
+
+      - name: Windows EXE beschikbaar maken
         uses: actions/upload-artifact@v4
         with:
-          name: Christmas-Radio-Windows
+          name: Christmas-Radio-V5-Windows
           path: dist/Christmas Radio.exe
           if-no-files-found: error
+          retention-days: 30
