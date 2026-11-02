@@ -1,0 +1,100 @@
+name: Christmas Radio - Seizoenen Windows EXE
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'modern_radio.py'
+      - 'make_themes.py'
+      - 'radio_engine.py'
+      - 'radio_v6.py'
+      - '.github/workflows/build-themes-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+    steps:
+      - name: Christmas Radio ophalen
+        uses: actions/checkout@v4
+
+      - name: Werkende PTT Direct Windows-basis ophalen
+        uses: actions/checkout@v4
+        with:
+          repository: michiel66/PTT-TS-NL
+          ref: main
+          path: ptt-direct-working
+
+      - name: Python installeren
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Rust installeren
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Exacte connectorversie van PTT Direct uitlezen
+        shell: pwsh
+        run: |
+          $workflow = Get-Content 'ptt-direct-working/.github/workflows/build-windows.yml' -Raw
+          $match = [regex]::Match($workflow, 'WEBSPEAK3_COMMIT:\s*([0-9a-f]{40})')
+          if (-not $match.Success) { throw 'Werkende connectorversie niet gevonden in PTT Direct!' }
+          $revision = $match.Groups[1].Value
+          "RADIO_CONNECTOR_REVISION=$revision" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Connectorbron vastgepind op $revision"
+
+      - name: De bewezen radio-connector ophalen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules https://github.com/WebSpeak3/webspeak3.git upstream
+          cd upstream
+          git checkout "$RADIO_CONNECTOR_REVISION"
+          git submodule update --init --recursive
+
+      - name: Native Windows-connector bouwen
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream/connector
+          cargo build --release
+          test -s target/release/ts-connector.exe
+
+      - name: Vereiste Python-pakketten installeren
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install Pillow 'pyinstaller>=6,<7'
+
+      - name: Thema-achtergronden samenstellen
+        run: |
+          python make_themes.py
+          python -m py_compile modern_radio.py make_themes.py radio_engine.py radio_v6.py
+
+      - name: Zelfstandige themaradio EXE bouwen
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed `
+            --name 'Christmas Radio Themes' `
+            --collect-all _sounddevice_data `
+            --add-data 'skins;skins' `
+            --add-data 'upstream/LICENSE;third_party_licenses' `
+            --add-binary 'upstream/connector/target/release/ts-connector.exe;.' `
+            modern_radio.py
+
+      - name: De nieuwe EXE beschikbaar maken
+        uses: actions/upload-artifact@v4
+        with:
+          name: Christmas-Radio-Themas-Windows
+          path: dist/Christmas Radio Themes.exe
+          if-no-files-found: error
+          retention-days: 30
