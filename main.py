@@ -1,12 +1,8 @@
 
-"""Christmas Radio V3 - verbeterde uitlijning.
+"""Christmas Radio V4 - gecentreerde OFFLINE-indicator en TALK-knop.
 
-Vereist:
-- PySide6
-- christmas_radio.png (1672 x 941)
-
-Dit is een visueel prototype.
-De echte radioverbinding volgt later.
+Vereist: PySide6 en christmas_radio.png (1672 x 941).
+Dit is een visueel prototype: nog geen echte spraakverbinding.
 """
 
 import sys
@@ -40,8 +36,7 @@ from PySide6.QtWidgets import (
 
 class ChristmasRadio(QWidget):
 
-    W = 1672
-    H = 941
+    W, H = 1672, 941
 
     GROUPS = [
         "TG-103 Voorburg",
@@ -60,7 +55,7 @@ class ChristmasRadio(QWidget):
         "volume": (75, 622, 195, 729),
         "sensitivity": (267, 622, 386, 729),
 
-        "talk": (497, 606, 823, 715),
+        "talk": (483, 585, 871, 731),
 
         "vox": (889, 498, 1020, 541),
         "mute": (1036, 498, 1163, 541),
@@ -84,8 +79,8 @@ class ChristmasRadio(QWidget):
     def __init__(self):
         super().__init__(
             None,
-            Qt.WindowType.Window |
-            Qt.WindowType.FramelessWindowHint
+            Qt.WindowType.Window
+            | Qt.WindowType.FramelessWindowHint,
         )
 
         self.setWindowTitle("Christmas Radio")
@@ -93,15 +88,14 @@ class ChristmasRadio(QWidget):
         self.setFocusPolicy(
             Qt.FocusPolicy.StrongFocus
         )
-
         self.setMinimumSize(780, 440)
 
-        # Afbeelding zoeken, ook binnen Windows EXE
+        # Afbeelding laden, ook binnen de Windows EXE.
         base = Path(
             getattr(
                 sys,
                 "_MEIPASS",
-                Path(__file__).resolve().parent
+                Path(__file__).resolve().parent,
             )
         )
 
@@ -115,10 +109,10 @@ class ChristmasRadio(QWidget):
                 "bij main.py of in de EXE."
             )
 
-        # Instellingen onthouden
+        # Instellingen onthouden.
         self.cfg = QSettings(
             "ChristmasRadio",
-            "ChristmasRadio"
+            "ChristmasRadio",
         )
 
         self.nickname = str(
@@ -128,7 +122,7 @@ class ChristmasRadio(QWidget):
         self.group = str(
             self.cfg.value(
                 "group",
-                self.GROUPS[0]
+                self.GROUPS[0],
             )
         )
 
@@ -148,33 +142,29 @@ class ChristmasRadio(QWidget):
         )
 
         self.muted = self.cfg.value(
-            "muted",
-            False,
-            type=bool
+            "muted", False, type=bool
         )
 
         self.vox = self.cfg.value(
-            "vox",
-            False,
-            type=bool
+            "vox", False, type=bool
         )
 
         self.roger = self.cfg.value(
-            "roger",
-            False,
-            type=bool
+            "roger", False, type=bool
         )
 
         self.tab = "leden"
         self.ptt_down = False
         self.drag_offset = None
 
-        # Klok bijwerken
+        # Klok automatisch bijwerken.
         self.clock = QTimer(self)
-        self.clock.timeout.connect(self.update)
+        self.clock.timeout.connect(
+            self.update
+        )
         self.clock.start(1000)
 
-        # Venster passend maken
+        # Venster automatisch passend op scherm.
         screen = QApplication.primaryScreen()
 
         if screen:
@@ -183,19 +173,18 @@ class ChristmasRadio(QWidget):
             factor = min(
                 1.0,
                 (area.width() - 20) / self.W,
-                (area.height() - 20) / self.H
+                (area.height() - 20) / self.H,
             )
 
             self.resize(
                 round(self.W * factor),
-                round(self.H * factor)
+                round(self.H * factor),
             )
 
             self.move(
-                area.center() -
-                self.rect().center()
+                area.center()
+                - self.rect().center()
             )
-
         else:
             self.resize(1254, 706)
 
@@ -204,7 +193,7 @@ class ChristmasRadio(QWidget):
         name,
         default,
         smallest,
-        largest
+        largest,
     ):
         try:
             value = int(
@@ -213,14 +202,14 @@ class ChristmasRadio(QWidget):
 
             return max(
                 smallest,
-                min(largest, value)
+                min(largest, value),
             )
 
         except (TypeError, ValueError):
             return default
 
     def save(self):
-        fields = (
+        for key in (
             "nickname",
             "group",
             "channel",
@@ -229,18 +218,16 @@ class ChristmasRadio(QWidget):
             "muted",
             "vox",
             "roger",
-        )
-
-        for key in fields:
+        ):
             self.cfg.setValue(
                 key,
-                getattr(self, key)
+                getattr(self, key),
             )
 
     def transform_info(self):
         scale = min(
             self.width() / self.W,
-            self.height() / self.H
+            self.height() / self.H,
         )
 
         offset_x = (
@@ -251,14 +238,18 @@ class ChristmasRadio(QWidget):
             self.height() - self.H * scale
         ) / 2
 
-        return scale, offset_x, offset_y
+        return (
+            scale,
+            offset_x,
+            offset_y,
+        )
 
     def artwork_pos(self, pos):
         scale, ox, oy = self.transform_info()
 
         return (
             (pos.x() - ox) / scale,
-            (pos.y() - oy) / scale
+            (pos.y() - oy) / scale,
         )
 
     @staticmethod
@@ -266,8 +257,8 @@ class ChristmasRadio(QWidget):
         x1, y1, x2, y2 = box
 
         return (
-            x1 <= x <= x2 and
-            y1 <= y <= y2
+            x1 <= x <= x2
+            and y1 <= y <= y2
         )
 
     @staticmethod
@@ -277,11 +268,11 @@ class ChristmasRadio(QWidget):
         y,
         w,
         h,
-        color="#06120d"
+        color="#06120d",
     ):
         painter.fillRect(
             QRectF(x, y, w, h),
-            QColor(color)
+            QColor(color),
         )
 
     @staticmethod
@@ -294,30 +285,33 @@ class ChristmasRadio(QWidget):
         top,
         bottom,
         edge=None,
-        radius=8
+        radius=8,
     ):
-        grad = QLinearGradient(
+        gradient = QLinearGradient(
             x,
             y,
             x,
-            y + h
+            y + h,
         )
 
-        grad.setColorAt(
+        gradient.setColorAt(
             0,
-            QColor(top)
+            QColor(top),
         )
 
-        grad.setColorAt(
+        gradient.setColorAt(
             1,
-            QColor(bottom)
+            QColor(bottom),
         )
 
-        painter.setBrush(grad)
+        painter.setBrush(gradient)
 
         if edge:
             painter.setPen(
-                QPen(QColor(edge), 2)
+                QPen(
+                    QColor(edge),
+                    2,
+                )
             )
         else:
             painter.setPen(
@@ -327,7 +321,7 @@ class ChristmasRadio(QWidget):
         painter.drawRoundedRect(
             QRectF(x, y, w, h),
             radius,
-            radius
+            radius,
         )
 
     @staticmethod
@@ -341,11 +335,11 @@ class ChristmasRadio(QWidget):
         size=19,
         color="#ffffff",
         weight=True,
-        align=Qt.AlignmentFlag.AlignCenter
+        align=Qt.AlignmentFlag.AlignCenter,
     ):
         font = QFont(
             "Segoe UI",
-            size
+            size,
         )
 
         font.setBold(weight)
@@ -358,190 +352,211 @@ class ChristmasRadio(QWidget):
         painter.drawText(
             QRectF(x, y, w, h),
             align,
-            str(value)
+            str(value),
         )
 
     def paintEvent(self, event):
-        p = QPainter(self)
+        painter = QPainter(self)
 
-        p.setRenderHint(
+        painter.setRenderHint(
             QPainter.RenderHint.Antialiasing
         )
 
-        p.setRenderHint(
+        painter.setRenderHint(
             QPainter.RenderHint.SmoothPixmapTransform
         )
 
-        p.fillRect(
+        painter.fillRect(
             self.rect(),
-            QColor("#030b08")
+            QColor("#030b08"),
         )
 
         scale, ox, oy = self.transform_info()
 
-        p.translate(ox, oy)
-        p.scale(scale, scale)
+        painter.translate(ox, oy)
+        painter.scale(scale, scale)
 
-        # Kerstafbeelding
-        p.drawPixmap(
+        # Originele kerstafbeelding.
+        painter.drawPixmap(
             QRectF(0, 0, self.W, self.H),
             self.art,
-            QRectF(self.art.rect())
+            QRectF(self.art.rect()),
         )
 
-        # Dynamische radiopanelen
-        self.draw_display(p)
-        self.draw_sidebar(p)
-        self.draw_footer(p)
+        # Volledige dynamische panelen.
+        self.draw_display(painter)
+        self.draw_sidebar(painter)
+        self.draw_footer(painter)
 
-        # Statusindicator
-        self.gradient(
-            p,
-            575, 770, 171, 58,
-            "#302025",
-            "#111518",
-            "#db897e",
-            10
-        )
+        # OFFLINE correct in statusvak.
+        self.draw_status(painter)
 
-        self.label(
-            p,
-            "● OFFLINE",
-            579, 777, 162, 42,
-            21,
-            "#ffb0ad"
-        )
-
-        # TALK knop visuele test
+        # TALK alleen binnenin rood bij indrukken.
         if self.ptt_down:
-            p.setBrush(
-                Qt.BrushStyle.NoBrush
-            )
+            self.draw_pressed_talk(painter)
 
-            p.setPen(
-                QPen(
-                    QColor("#ff4545"),
-                    6
-                )
-            )
-
-            p.drawRoundedRect(
-                QRectF(
-                    493, 603, 330, 116
-                ),
-                15,
-                15
-            )
-
-        # Knopindicaties
-        states = (
+        # Kleine knoppen markeren bij inschakelen.
+        for enabled, key in (
             (self.vox, "vox"),
             (self.muted, "mute"),
             (self.roger, "roger"),
-        )
-
-        for enabled, key in states:
+        ):
             if enabled:
                 x1, y1, x2, y2 = self.HOTSPOTS[key]
 
-                p.setBrush(
+                painter.setBrush(
                     Qt.BrushStyle.NoBrush
                 )
 
-                p.setPen(
+                painter.setPen(
                     QPen(
                         QColor("#ffdf75"),
-                        3
+                        3,
                     )
                 )
 
-                p.drawRoundedRect(
+                painter.drawRoundedRect(
                     QRectF(
                         x1,
                         y1,
                         x2 - x1,
-                        y2 - y1
+                        y2 - y1,
                     ),
                     8,
-                    8
+                    8,
                 )
 
-        p.end()
+        painter.end()
 
-    def draw_display(self, p):
-        # Compleet display opnieuw tekenen
+    def draw_status(self, painter):
+        # OFFLINE binnen het bestaande statusvak.
         self.gradient(
-            p,
+            painter,
+            582, 782, 171, 53,
+            "#35191f",
+            "#100d11",
+            "#eb6671",
+            13,
+        )
+
+        painter.setPen(
+            Qt.PenStyle.NoPen
+        )
+
+        painter.setBrush(
+            QColor("#fa5662")
+        )
+
+        painter.drawEllipse(
+            QPointF(612, 808),
+            8,
+            8,
+        )
+
+        self.label(
+            painter,
+            "OFFLINE",
+            630, 789, 113, 39,
+            20,
+            "#fff4f3",
+        )
+
+    def draw_pressed_talk(self, painter):
+        # Alleen binnenkant van de TALK-knop.
+        # Groene omlijsting blijft zichtbaar.
+        self.gradient(
+            painter,
+            539, 631, 285, 76,
+            "#e7525b",
+            "#720e20",
+            "#ffcc91",
+            12,
+        )
+
+        self.label(
+            painter,
+            "TALK",
+            546, 636, 271, 65,
+            38,
+            "#fff6df",
+        )
+
+    def draw_display(self, painter):
+        # Compleet radiodisplay opnieuw tekenen.
+        self.gradient(
+            painter,
             39, 357, 1137, 121,
             "#07130f",
             "#020907",
             "#d5a94a",
-            12
+            12,
         )
 
-        # Scheidingslijnen
-        for x in (223, 433, 791, 989):
-            p.setPen(
+        # Scheidingslijnen.
+        for x in (
+            223,
+            433,
+            791,
+            989,
+        ):
+            painter.setPen(
                 QPen(
                     QColor("#9e8b4f"),
-                    2
+                    2,
                 )
             )
 
-            p.drawLine(
+            painter.drawLine(
                 x, 362,
-                x, 473
+                x, 473,
             )
 
-        # Kanaal
+        # Kanaal.
         self.label(
-            p,
+            painter,
             "CHANNEL",
             46, 368, 173, 26,
             18,
-            "#f5f7f1"
+            "#f5f7f1",
         )
 
         self.label(
-            p,
+            painter,
             str(self.channel),
             48, 396, 170, 74,
             43,
-            "#75ff92"
+            "#75ff92",
         )
 
-        # Tijd
+        # Tijd.
         self.label(
-            p,
+            painter,
             "TIME",
             228, 368, 200, 26,
-            18
-        )
-
-        current_time = (
-            QDateTime.currentDateTime()
-            .toString("HH:mm")
+            18,
         )
 
         self.label(
-            p,
-            current_time,
+            painter,
+            QDateTime.currentDateTime().toString(
+                "HH:mm"
+            ),
             229, 396, 199, 74,
             36,
-            "#80ffaf"
+            "#80ffaf",
         )
 
-        # Signaalmeter
+        # Signaalmeter.
         self.label(
-            p,
+            painter,
             "SIGNAL / MODULATION",
             440, 368, 341, 26,
-            18
+            18,
         )
 
         for i in range(11):
             self.gradient(
-                p,
+                painter,
                 463 + i * 27,
                 409,
                 23,
@@ -549,97 +564,98 @@ class ChristmasRadio(QWidget):
                 "#214634",
                 "#183227",
                 "#395847",
-                3
+                3,
             )
 
         self.label(
-            p,
+            painter,
             "S   1   3   5   7   9   +30",
             459, 440, 313, 27,
-            16
+            16,
         )
 
-        # RX / TX / BUSY
+        # RX / TX / BUSY.
         indicators = (
             (838, False, "#3dff69"),
             (891, self.ptt_down, "#ff4b54"),
             (942, False, "#ffc358"),
         )
 
-        for cx, active, color in indicators:
-            p.setPen(
+        for cx, enabled, color in indicators:
+            painter.setPen(
                 QPen(
                     QColor("#536e5e"),
-                    1
+                    1,
                 )
             )
 
-            p.setBrush(
+            painter.setBrush(
                 QColor(
-                    color if active else "#30463c"
+                    color if enabled
+                    else "#30463c"
                 )
             )
 
-            p.drawEllipse(
+            painter.drawEllipse(
                 QPointF(cx, 416),
                 10,
-                10
+                10,
             )
 
         self.label(
-            p,
+            painter,
             "RX",
             814, 440, 48, 27,
-            17
+            17,
         )
 
         self.label(
-            p,
+            painter,
             "TX",
             867, 440, 48, 27,
-            17
+            17,
         )
 
         self.label(
-            p,
+            painter,
             "BUSY",
             913, 440, 65, 27,
-            16
+            16,
         )
 
-        # Weer
+        # Weergegevens nog niet aangesloten.
         self.label(
-            p,
+            painter,
             "NEDERLAND",
             996, 368, 172, 26,
-            18
+            18,
         )
 
         self.label(
-            p,
+            painter,
             "-- °C",
             1000, 393, 169, 48,
             30,
-            "#90ffc2"
+            "#90ffc2",
         )
 
         self.label(
-            p,
+            painter,
             "GEEN WEERDATA",
             1000, 439, 169, 27,
             12,
-            "#e3ece8"
+            "#e3ece8",
         )
 
-    def draw_sidebar(self, p):
-        # Compleet rechterpaneel
+    def draw_sidebar(self, painter):
+        # Rechterpaneel opnieuw tekenen.
         self.gradient(
-            p,
+            painter,
             1207, 332, 459, 505,
             "#103627",
             "#07150f",
             "#c59c4d",
-            13
+            13,
         )
 
         titles = {
@@ -649,19 +665,19 @@ class ChristmasRadio(QWidget):
             "instellingen": "INSTELLINGEN",
         }
 
-        # Tabbladen
+        # Tabbladen.
         for key in (
             "leden",
             "chat",
             "nieuws",
-            "instellingen"
+            "instellingen",
         ):
             x1, y1, x2, y2 = self.HOTSPOTS[key]
 
             active = self.tab == key
 
             self.gradient(
-                p,
+                painter,
                 x1 + 2,
                 y1 + 5,
                 x2 - x1 - 5,
@@ -669,126 +685,126 @@ class ChristmasRadio(QWidget):
                 "#bf2130" if active else "#1c503c",
                 "#770b19" if active else "#09271c",
                 "#ffe19a" if active else "#538566",
-                8
+                8,
             )
 
             self.label(
-                p,
+                painter,
                 titles[key],
                 x1 + 3,
                 y1 + 6,
                 x2 - x1 - 6,
                 y2 - y1 - 12,
-                13 if key == "instellingen" else 15
+                13 if key == "instellingen" else 15,
             )
 
         self.gradient(
-            p,
+            painter,
             1217, 404, 440, 344,
             "#0a251d",
             "#04100c",
             "#21513b",
-            9
+            9,
         )
 
         if self.tab == "leden":
             self.label(
-                p,
+                painter,
                 "● OFFLINE",
                 1230, 454, 391, 45,
                 23,
-                "#f6aeaa"
+                "#f6aeaa",
             )
 
             self.label(
-                p,
+                painter,
                 "Nog geen leden verbonden",
                 1228, 513, 395, 45,
                 21,
-                "#f4e6be"
+                "#f4e6be",
             )
 
             self.label(
-                p,
+                painter,
                 "De echte ledenlijst verschijnt wanneer",
                 1230, 563, 390, 33,
                 15,
-                "#bde5cd"
+                "#bde5cd",
             )
 
             self.label(
-                p,
+                painter,
                 "we de spraakverbinding koppelen.",
                 1230, 592, 390, 33,
                 15,
-                "#bde5cd"
+                "#bde5cd",
             )
 
             self.label(
-                p,
+                painter,
                 f"Gekozen: {self.group}",
                 1230, 670, 390, 42,
                 17,
-                "#8bf2af"
+                "#8bf2af",
             )
 
         elif self.tab == "chat":
             self.label(
-                p,
+                painter,
                 "KANAALCHAT",
                 1230, 457, 390, 55,
                 24,
-                "#f5e3b2"
+                "#f5e3b2",
             )
 
             self.label(
-                p,
+                painter,
                 "De chat is nog niet aangesloten.",
                 1230, 535, 390, 43,
-                18
+                18,
             )
 
         elif self.tab == "nieuws":
             self.label(
-                p,
+                painter,
                 "PRETTIGE KERSTDAGEN!",
                 1230, 457, 390, 55,
                 24,
-                "#f4d17d"
+                "#f4d17d",
             )
 
             self.label(
-                p,
+                painter,
                 "Welkom bij Christmas Radio",
                 1230, 535, 390, 43,
-                18
+                18,
             )
 
         else:
             self.label(
-                p,
+                painter,
                 "Klik op een regel om te wijzigen",
                 1228, 420, 390, 44,
                 17,
-                "#f8e5af"
+                "#f8e5af",
             )
 
             values = [
                 (
                     "setting_name",
-                    f"Gebruiker: {self.nickname[:19]}"
+                    f"Gebruiker: {self.nickname[:19]}",
                 ),
                 (
                     "setting_group",
-                    self.group
+                    self.group,
                 ),
                 (
                     "setting_volume",
-                    f"Volume: {self.volume}% (nog geen audio)"
+                    f"Volume: {self.volume}% (nog geen audio)",
                 ),
                 (
                     "setting_vox",
-                    f"VOX-gevoeligheid: {self.sensitivity}%"
+                    f"VOX-gevoeligheid: {self.sensitivity}%",
                 ),
             ]
 
@@ -796,139 +812,140 @@ class ChristmasRadio(QWidget):
                 x1, y1, x2, y2 = self.HOTSPOTS[key]
 
                 self.gradient(
-                    p,
-                    x1, y1,
+                    painter,
+                    x1,
+                    y1,
                     x2 - x1,
                     y2 - y1,
                     "#245440",
                     "#0b291e",
                     "#5c956f",
-                    7
+                    7,
                 )
 
                 self.label(
-                    p,
+                    painter,
                     value,
                     x1 + 5,
                     y1 + 2,
                     x2 - x1 - 10,
                     y2 - y1 - 4,
-                    16
+                    16,
                 )
 
-        # Kersttekst onderaan
-        p.setPen(
+        # Onderkant rechterpaneel.
+        painter.setPen(
             QPen(
                 QColor("#ba934d"),
-                2
+                2,
             )
         )
 
-        p.drawLine(
+        painter.drawLine(
             1225, 768,
-            1650, 768
+            1650, 768,
         )
 
         self.label(
-            p,
+            painter,
             "❄  CHRISTMAS RADIO  ❄",
             1225, 779, 428, 40,
             19,
-            "#efd18b"
+            "#efd18b",
         )
 
-        # Kanaalchat titel
+        # Kanaalchat titel.
         self.fill(
-            p,
+            painter,
             1263, 277, 342, 44,
-            "#07140e"
+            "#07140e",
         )
 
         self.label(
-            p,
+            painter,
             f"KANAALCHAT  •  CH {self.channel}",
             1263, 278, 342, 43,
-            22
+            22,
         )
 
-    def draw_footer(self, p):
-        # Complete onderbalk
+    def draw_footer(self, painter):
+        # Complete onderbalk.
         self.gradient(
-            p,
+            painter,
             5, 859, 1662, 73,
             "#0b2c1e",
             "#04100e",
             "#af8440",
-            10
+            10,
         )
 
-        # Scheidingslijnen
         for x in (
             435,
             730,
             1190,
             1300,
-            1516
+            1516,
         ):
-            p.setPen(
+            painter.setPen(
                 QPen(
                     QColor("#7c9669"),
-                    1
+                    1,
                 )
             )
 
-            p.drawLine(
+            painter.drawLine(
                 x, 876,
-                x, 916
+                x, 916,
             )
 
-        # TG
+        # Geselecteerde groep.
         self.label(
-            p,
+            painter,
             f"Gekozen: {self.group}",
             20, 871, 405, 49,
             20,
-            "#b9fff2"
+            "#b9fff2",
         )
 
-        # Gebruikersnaam
-        nick = self.nickname
-
-        if len(nick) >= 19:
-            nick = nick[:18] + "…"
+        # Gebruiker.
+        nick = (
+            self.nickname
+            if len(self.nickname) < 19
+            else self.nickname[:18] + "…"
+        )
 
         self.label(
-            p,
+            painter,
             f"Gebruiker: {nick}",
             441, 872, 281, 48,
-            18
+            18,
         )
 
-        # Kerstgroet
+        # Kerstgroet.
         self.label(
-            p,
+            painter,
             "❄  Prettige Kerstdagen  ❄",
             735, 870, 447, 51,
             24,
-            "#f5d48f"
+            "#f5d48f",
         )
 
-        # Ping nog niet beschikbaar
+        # Ping nog niet beschikbaar.
         self.label(
-            p,
+            painter,
             "-- ms",
             1192, 871, 105, 49,
             18,
-            "#cdd9d1"
+            "#cdd9d1",
         )
 
-        # Volume
+        # Volumeweergave.
         self.label(
-            p,
+            painter,
             "VOLUME",
             1302, 872, 211, 22,
             13,
-            "#d3e8d6"
+            "#d3e8d6",
         )
 
         count = round(
@@ -936,41 +953,42 @@ class ChristmasRadio(QWidget):
         )
 
         for i in range(10):
-            p.setPen(
+            painter.setPen(
                 Qt.PenStyle.NoPen
             )
 
-            p.setBrush(
+            painter.setBrush(
                 QColor(
-                    "#43c3e0" if i < count
+                    "#43c3e0"
+                    if i < count
                     else "#34453f"
                 )
             )
 
-            p.drawRect(
+            painter.drawRect(
                 QRectF(
                     1331 + i * 16,
                     900,
                     12,
-                    10
+                    10,
                 )
             )
 
-        # Tijd en datum
+        # Tijd en datum.
         now = QDateTime.currentDateTime()
 
         self.label(
-            p,
+            painter,
             now.toString("HH:mm"),
             1521, 863, 135, 32,
-            19
+            19,
         )
 
         self.label(
-            p,
+            painter,
             now.toString("dd-MM-yyyy"),
             1521, 894, 135, 30,
-            13
+            13,
         )
 
     def change_channel(self, delta):
@@ -986,12 +1004,11 @@ class ChristmasRadio(QWidget):
             self,
             "Christmas Radio",
             "Gebruikersnaam:",
-            text=self.nickname
+            text=self.nickname,
         )
 
         if ok and value.strip():
             self.nickname = value.strip()[:28]
-
             self.save()
             self.update()
 
@@ -1002,12 +1019,11 @@ class ChristmasRadio(QWidget):
             "Kies je TG-groep:",
             self.GROUPS,
             self.GROUPS.index(self.group),
-            False
+            False,
         )
 
         if ok:
             self.group = value
-
             self.save()
             self.update()
 
@@ -1018,12 +1034,11 @@ class ChristmasRadio(QWidget):
             name + " (0-100):",
             getattr(self, key),
             0,
-            100
+            100,
         )
 
         if ok:
             setattr(self, key, value)
-
             self.save()
             self.update()
 
@@ -1035,15 +1050,16 @@ class ChristmasRadio(QWidget):
             event.position()
         )
 
-        # Vensterknoppen
+        # Vensterknoppen.
         for key in (
             "close",
             "min",
-            "max"
+            "max",
         ):
             if self.in_box(
-                x, y,
-                self.HOTSPOTS[key]
+                x,
+                y,
+                self.HOTSPOTS[key],
             ):
                 if key == "close":
                     self.close()
@@ -1059,50 +1075,51 @@ class ChristmasRadio(QWidget):
 
                 return
 
-        # TALK
+        # TALK.
         if self.in_box(
-            x, y,
-            self.HOTSPOTS["talk"]
+            x,
+            y,
+            self.HOTSPOTS["talk"],
         ):
             self.setFocus()
             self.ptt_down = True
             self.update()
             return
 
-        # Kanaal omlaag
+        # Kanaal omlaag.
         if self.in_box(
             x, y,
-            self.HOTSPOTS["down"]
+            self.HOTSPOTS["down"],
         ):
             self.change_channel(-1)
             return
 
-        # Kanaal omhoog
+        # Kanaal omhoog.
         if self.in_box(
             x, y,
-            self.HOTSPOTS["up"]
+            self.HOTSPOTS["up"],
         ):
             self.change_channel(1)
             return
 
-        # Scan
+        # Scan.
         if self.in_box(
             x, y,
-            self.HOTSPOTS["scan"]
+            self.HOTSPOTS["scan"],
         ):
             self.tab = "nieuws"
             self.update()
             return
 
-        # MUTE, VOX en ROGER
+        # MUTE / VOX / ROGER.
         for key in (
             "mute",
             "vox",
-            "roger"
+            "roger",
         ):
             if self.in_box(
                 x, y,
-                self.HOTSPOTS[key]
+                self.HOTSPOTS[key],
             ):
                 attr = (
                     "muted"
@@ -1113,76 +1130,76 @@ class ChristmasRadio(QWidget):
                 setattr(
                     self,
                     attr,
-                    not getattr(self, attr)
+                    not getattr(self, attr),
                 )
 
                 self.save()
                 self.update()
                 return
 
-        # Webcam
+        # Webcam.
         if self.in_box(
             x, y,
-            self.HOTSPOTS["webcam"]
+            self.HOTSPOTS["webcam"],
         ):
             self.tab = "nieuws"
             self.update()
             return
 
-        # TG-groep
+        # Groep kiezen.
         if self.in_box(
             x, y,
-            self.HOTSPOTS["group"]
+            self.HOTSPOTS["group"],
         ):
             self.change_group()
             return
 
-        # Naam
+        # Naam wijzigen.
         if self.in_box(
             x, y,
-            self.HOTSPOTS["nickname"]
+            self.HOTSPOTS["nickname"],
         ):
             self.change_name()
             return
 
-        # Volume
+        # Volume.
         if self.in_box(
             x, y,
-            self.HOTSPOTS["volume"]
+            self.HOTSPOTS["volume"],
         ):
             self.change_number(
                 "volume",
-                "Volume"
+                "Volume",
             )
             return
 
-        # VOX-gevoeligheid
+        # VOX-gevoeligheid.
         if self.in_box(
             x, y,
-            self.HOTSPOTS["sensitivity"]
+            self.HOTSPOTS["sensitivity"],
         ):
             self.change_number(
                 "sensitivity",
-                "VOX-gevoeligheid"
+                "VOX-gevoeligheid",
             )
             return
 
-        # Tabbladen
+        # Tabbladen.
         for key in (
             "leden",
             "chat",
             "nieuws",
-            "instellingen"
+            "instellingen",
         ):
             if self.in_box(
                 x, y,
-                self.HOTSPOTS[key]
+                self.HOTSPOTS[key],
             ):
                 self.tab = key
                 self.update()
                 return
 
-        # Instellingen
+        # Instellingen rechts.
         if self.tab == "instellingen":
             mapping = (
                 ("setting_name", "name"),
@@ -1194,7 +1211,7 @@ class ChristmasRadio(QWidget):
             for key, attr in mapping:
                 if self.in_box(
                     x, y,
-                    self.HOTSPOTS[key]
+                    self.HOTSPOTS[key],
                 ):
                     if attr == "name":
                         self.change_name()
@@ -1211,16 +1228,16 @@ class ChristmasRadio(QWidget):
 
                         self.change_number(
                             attr,
-                            title
+                            title,
                         )
 
                     return
 
-        # Venster verslepen
+        # Venster slepen via bovenste balk.
         if 0 <= x < 1420 and 0 <= y < 48:
             self.drag_offset = (
-                event.globalPosition().toPoint() -
-                self.frameGeometry().topLeft()
+                event.globalPosition().toPoint()
+                - self.frameGeometry().topLeft()
             )
 
     def mouseMoveEvent(self, event):
@@ -1231,8 +1248,8 @@ class ChristmasRadio(QWidget):
         ):
             if not self.isMaximized():
                 self.move(
-                    event.globalPosition().toPoint() -
-                    self.drag_offset
+                    event.globalPosition().toPoint()
+                    - self.drag_offset
                 )
 
             return
@@ -1256,21 +1273,27 @@ class ChristmasRadio(QWidget):
 
         active = any(
             self.in_box(
-                x, y,
-                self.HOTSPOTS[key]
+                x,
+                y,
+                self.HOTSPOTS[key],
             )
             for key in keys
         )
 
         if active:
-            cursor = Qt.CursorShape.PointingHandCursor
+            self.setCursor(
+                Qt.CursorShape.PointingHandCursor
+            )
         else:
-            cursor = Qt.CursorShape.ArrowCursor
-
-        self.setCursor(cursor)
+            self.setCursor(
+                Qt.CursorShape.ArrowCursor
+            )
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+        if (
+            event.button()
+            == Qt.MouseButton.LeftButton
+        ):
             self.drag_offset = None
             self.ptt_down = False
             self.update()
@@ -1306,7 +1329,6 @@ class ChristmasRadio(QWidget):
     def closeEvent(self, event):
         self.ptt_down = False
         self.save()
-
         super().closeEvent(event)
 
 
@@ -1324,7 +1346,7 @@ def main():
         QMessageBox.critical(
             None,
             "Christmas Radio",
-            str(exc)
+            str(exc),
         )
 
         return 1
